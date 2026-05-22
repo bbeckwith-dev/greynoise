@@ -116,22 +116,6 @@ iplist.txt ─> parser ─> lookup ─> writer ─> results.csv / results.json
 | `writer.py` | CSV/JSON output and summary statistics |
 | `cli.py` | Argument parsing, logging setup, orchestration |
 
-## Development
-
-```bash
-# Install with dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Run tests with coverage
-pytest --cov=greynoise_lookup --cov-report=term-missing
-
-# Type checking
-mypy src/
-```
-
 ## License
 
 MIT
