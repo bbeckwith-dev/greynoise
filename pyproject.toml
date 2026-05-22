@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "greynoise-lookup"
+version = "1.0.0"
+description = "IP, subnet, and ASN threat research via reverse DNS and GreyNoise"
+requires-python = ">=3.9"
+dependencies = [
+    "dnspython~=2.7",
+    "requests~=2.32",
+    "python-dotenv~=1.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest~=8.3",
+    "pytest-cov~=6.1",
+    "responses~=0.25",
+]
+
+[project.scripts]
+greynoise-lookup = "greynoise_lookup.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["greynoise_lookup"]
