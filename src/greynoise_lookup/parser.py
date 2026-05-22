@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import ipaddress
 import logging
 import re
-from typing import List
 
 from greynoise_lookup.models import ClassifiedEntry, EntryType
 
@@ -51,9 +52,9 @@ def classify_entry(raw: str) -> ClassifiedEntry:
     return ClassifiedEntry(raw=raw, entry_type=EntryType.INVALID, value=stripped)
 
 
-def expand_subnet(cidr: str, max_ips: int = 10_000) -> List[str]:
+def expand_subnet(cidr: str, max_ips: int = 10_000) -> list[str]:
     network = ipaddress.IPv4Network(cidr, strict=False)
-    ips: List[str] = []
+    ips: list[str] = []
     for i, addr in enumerate(network):
         if i >= max_ips:
             logger.warning(
@@ -67,8 +68,8 @@ def expand_subnet(cidr: str, max_ips: int = 10_000) -> List[str]:
 
 def parse_input_file(
     path: str, max_entries: int = MAX_ENTRIES
-) -> List[ClassifiedEntry]:
-    entries: List[ClassifiedEntry] = []
+) -> list[ClassifiedEntry]:
+    entries: list[ClassifiedEntry] = []
     with open(path, "r") as f:
         for line in f:
             if len(entries) >= max_entries:

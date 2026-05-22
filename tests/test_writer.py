@@ -1,9 +1,10 @@
 import csv
+import json
 
 import pytest
 
 from greynoise_lookup.models import LookupResult
-from greynoise_lookup.writer import write_results, build_summary
+from greynoise_lookup.writer import build_summary, write_results, write_results_json
 
 
 def _make_result(**overrides) -> LookupResult:
@@ -96,3 +97,45 @@ class TestBuildSummary:
         summary = build_summary(results)
         assert summary["noise_count"] == 0
         assert summary["riot_count"] == 0
+
+
+class TestWriteResultsJson:
+    def test_writes_json_array(self, tmp_path):
+        out = tmp_path / "results.json"
+        results = [_make_result()]
+        write_results_json(results, str(out))
+
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert isinstance(data, list)
+        assert len(data) == 1
+        assert data[0]["ip"] == "8.8.8.8"
+        assert data[0]["ptr"] == "dns.google."
+        assert data[0]["classification"] == "benign"
+
+    def test_empty_results_writes_empty_array(self, tmp_path):
+        out = tmp_path / "results.json"
+        write_results_json([], str(out))
+
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert data == []
+
+    def test_special_characters_serialize_correctly(self, tmp_path):
+        out = tmp_path / "results.json"
+        results = [_make_result(name='Acme, Inc. "the best"')]
+        write_results_json(results, str(out))
+
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert data[0]["name"] == 'Acme, Inc. "the best"'
+
+    def test_multiple_results(self, tmp_path):
+        out = tmp_path / "results.json"
+        results = [
+            _make_result(ip="8.8.8.8"),
+            _make_result(ip="1.1.1.1", entry="1.1.1.1"),
+        ]
+        write_results_json(results, str(out))
+
+        data = json.loads(out.read_text(encoding="utf-8"))
+        assert len(data) == 2
+        assert data[0]["ip"] == "8.8.8.8"
+        assert data[1]["ip"] == "1.1.1.1"

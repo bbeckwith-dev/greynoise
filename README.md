@@ -1,6 +1,6 @@
 # greynoise-lookup
 
-CLI tool for IP, subnet, and ASN threat research. Takes a list of targets, performs reverse DNS lookups and [GreyNoise](https://www.greynoise.io/) community API queries, and writes structured results to CSV.
+CLI tool for IP, subnet, and ASN threat research. Takes a list of targets, performs reverse DNS lookups and [GreyNoise](https://www.greynoise.io/) community API queries, and writes structured results to CSV or JSON.
 
 ## Features
 
@@ -11,7 +11,7 @@ CLI tool for IP, subnet, and ASN threat research. Takes a list of targets, perfo
 - **Safety bounds**: configurable max-IPs limit prevents runaway scans on large ASNs
 - **Retry with backoff**: handles API rate limits and transient failures
 - **Dry-run mode**: validate input without making API calls
-- **CSV output**: properly quoted, ready for spreadsheets or further analysis
+- **CSV or JSON output**: choose your format with `--format`
 
 ## Installation
 
@@ -43,6 +43,9 @@ greynoise-lookup
 # Custom input/output
 greynoise-lookup -i targets.txt -o scan_results.csv
 
+# JSON output
+greynoise-lookup --format json -i targets.txt
+
 # Dry run — classify input without querying APIs
 greynoise-lookup --dry-run -i targets.txt
 
@@ -58,7 +61,8 @@ greynoise-lookup --max-ips 100 -i targets.txt
 | Flag | Default | Description |
 |------|---------|-------------|
 | `-i`, `--input` | `iplist.txt` | Input file path |
-| `-o`, `--output` | `results.csv` | Output CSV path |
+| `-o`, `--output` | `results.csv` / `results.json` | Output file path (auto-selects extension from format) |
+| `--format` | `csv` | Output format: `csv` or `json` |
 | `--max-ips` | `10000` | Max IPs per subnet/ASN expansion |
 | `-v`, `--verbose` | off | Debug-level logging |
 | `--dry-run` | off | Parse input only, no API calls |
@@ -94,7 +98,7 @@ INFO:   benign: 2
 ## Architecture
 
 ```
-iplist.txt ─> parser ─> lookup ─> writer ─> results.csv
+iplist.txt ─> parser ─> lookup ─> writer ─> results.csv / results.json
                │          │
                │          ├── reverse_dns()     (dnspython)
                │          └── query_greynoise()  (requests)
@@ -109,7 +113,7 @@ iplist.txt ─> parser ─> lookup ─> writer ─> results.csv
 | `models.py` | Frozen dataclasses (`ClassifiedEntry`, `LookupResult`) and `EntryType` enum |
 | `parser.py` | Input classification, subnet expansion, ASN resolution |
 | `lookup.py` | Reverse DNS and GreyNoise API queries with retry logic |
-| `writer.py` | CSV output and summary statistics |
+| `writer.py` | CSV/JSON output and summary statistics |
 | `cli.py` | Argument parsing, logging setup, orchestration |
 
 ## Development
@@ -123,6 +127,9 @@ pytest
 
 # Run tests with coverage
 pytest --cov=greynoise_lookup --cov-report=term-missing
+
+# Type checking
+mypy src/
 ```
 
 ## License

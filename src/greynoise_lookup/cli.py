@@ -1,17 +1,17 @@
+from __future__ import annotations
+
 import argparse
+import ipaddress
 import logging
 import os
 import sys
-from typing import List, Optional
 
 from dotenv import load_dotenv
-
-import ipaddress
 
 from greynoise_lookup.lookup import process_ip, resolve_asn_to_networks
 from greynoise_lookup.models import ClassifiedEntry, EntryType, LookupResult
 from greynoise_lookup.parser import classify_entry, expand_subnet, parse_input_file
-from greynoise_lookup.writer import print_summary, write_results
+from greynoise_lookup.writer import print_summary, write_results, write_results_json
 
 logger = logging.getLogger("greynoise_lookup")
 
@@ -28,8 +28,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "-o", "--output",
-        default="results.csv",
-        help="Path to output CSV file (default: results.csv)",
+        default=None,
+        help="Path to output file (default: results.csv or results.json)",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["csv", "json"],
+        default="csv",
+        dest="format",
+        help="Output format (default: csv)",
     )
     parser.add_argument(
         "--max-ips",
@@ -61,9 +68,9 @@ def configure_logging(verbose: bool) -> None:
 
 def process_entry(
     entry: ClassifiedEntry,
-    api_key: Optional[str],
+    api_key: str | None,
     max_ips: int,
-) -> List[LookupResult]:
+) -> list[LookupResult]:
     if entry.entry_type == EntryType.IP:
         return [process_ip(entry.raw.strip(), entry.value, api_key=api_key)]
 
@@ -81,7 +88,7 @@ def process_entry(
             logger.warning("No networks found for AS%s", entry.value)
             return []
         logger.info("AS%s: %d networks found", entry.value, len(networks))
-        results: List[LookupResult] = []
+        results: list[LookupResult] = []
         for cidr in networks:
             ips = expand_subnet(cidr, max_ips=max_ips)
             logger.info("  %s: processing %d IPs", cidr, len(ips))
@@ -98,7 +105,7 @@ def process_entry(
     return []
 
 
-def dry_run_report(entries: List[ClassifiedEntry], max_ips: int) -> None:
+def dry_run_report(entries: list[ClassifiedEntry], max_ips: int) -> None:
     for entry in entries:
         label = entry.entry_type.value.upper()
         if entry.entry_type == EntryType.SUBNET:
@@ -113,9 +120,16 @@ def dry_run_report(entries: List[ClassifiedEntry], max_ips: int) -> None:
             logger.info("[%s] %s", label, entry.raw.strip())
 
 
+def _resolve_output_path(args: argparse.Namespace) -> str:
+    if args.output is not None:
+        return str(args.output)
+    return "results.json" if args.format == "json" else "results.csv"
+
+
 def run(args: argparse.Namespace) -> int:
     load_dotenv()
     api_key = os.environ.get("GREYNOISE_API_KEY") or None
+    output_path = _resolve_output_path(args)
 
     if not api_key:
         logger.info("No GREYNOISE_API_KEY set — using unauthenticated community API")
@@ -136,12 +150,15 @@ def run(args: argparse.Namespace) -> int:
         dry_run_report(entries, args.max_ips)
         return 0
 
-    all_results: List[LookupResult] = []
+    all_results: list[LookupResult] = []
     for entry in entries:
         results = process_entry(entry, api_key, args.max_ips)
         all_results.extend(results)
 
-    write_results(all_results, args.output)
+    if args.format == "json":
+        write_results_json(all_results, output_path)
+    else:
+        write_results(all_results, output_path)
     print_summary(all_results)
     return 0
 

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 
 class EntryType(Enum):
@@ -22,8 +23,8 @@ class LookupResult:
     entry: str
     ip: str
     ptr: str
-    noise: Optional[bool]
-    riot: Optional[bool]
+    noise: bool | None
+    riot: bool | None
     classification: str
     name: str
     link: str

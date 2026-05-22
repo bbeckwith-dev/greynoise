@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import csv
+import json
 import logging
 from collections import Counter
 from dataclasses import asdict
-from typing import Dict, List
+from typing import Any
 
 from greynoise_lookup.models import LookupResult
 
@@ -14,7 +17,7 @@ CSV_FIELDS = [
 ]
 
 
-def write_results(results: List[LookupResult], output_path: str) -> None:
+def write_results(results: list[LookupResult], output_path: str) -> None:
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, quoting=csv.QUOTE_MINIMAL)
         writer.writeheader()
@@ -23,8 +26,15 @@ def write_results(results: List[LookupResult], output_path: str) -> None:
     logger.info("Wrote %d results to %s", len(results), output_path)
 
 
-def build_summary(results: List[LookupResult]) -> Dict:
-    classifications: Counter = Counter()
+def write_results_json(results: list[LookupResult], output_path: str) -> None:
+    data = [asdict(r) for r in results]
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+    logger.info("Wrote %d results to %s", len(results), output_path)
+
+
+def build_summary(results: list[LookupResult]) -> dict[str, Any]:
+    classifications: Counter[str] = Counter()
     noise_count = 0
     riot_count = 0
 
@@ -44,7 +54,7 @@ def build_summary(results: List[LookupResult]) -> Dict:
     }
 
 
-def print_summary(results: List[LookupResult]) -> None:
+def print_summary(results: list[LookupResult]) -> None:
     summary = build_summary(results)
     logger.info("--- Summary ---")
     logger.info("Total IPs scanned: %d", summary["total_ips"])

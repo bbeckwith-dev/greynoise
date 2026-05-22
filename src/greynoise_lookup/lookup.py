@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import ipaddress
 import logging
 import time
-from typing import Dict, List, Optional
+from typing import Any
 
 import dns.exception
 import dns.resolver
@@ -39,11 +41,11 @@ def reverse_dns(ip: str) -> str:
 
 def query_greynoise(
     ip: str,
-    api_key: Optional[str] = None,
+    api_key: str | None = None,
     pre_request_delay: float = 1.0,
-) -> Dict:
+) -> dict[str, Any]:
     url = f"{GREYNOISE_COMMUNITY_URL}/{ip}"
-    headers = {"Accept": "application/json"}
+    headers: dict[str, str] = {"Accept": "application/json"}
     if api_key:
         headers["key"] = api_key
 
@@ -54,7 +56,8 @@ def query_greynoise(
         try:
             resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
             if resp.status_code == 200:
-                return resp.json()
+                result: dict[str, Any] = resp.json()
+                return result
             if resp.status_code in (429, 500, 502, 503):
                 if attempt < MAX_RETRIES:
                     backoff = 2 ** attempt
@@ -82,7 +85,7 @@ def query_greynoise(
 
 def resolve_asn_to_networks(
     asn_number: str, max_networks: int = 50
-) -> List[str]:
+) -> list[str]:
     try:
         resp = requests.get(
             SHADOWSERVER_ASN_URL,
@@ -127,7 +130,7 @@ def _is_valid_ipv4_cidr(value: object) -> bool:
 def process_ip(
     entry: str,
     ip: str,
-    api_key: Optional[str] = None,
+    api_key: str | None = None,
     pre_request_delay: float = 1.0,
 ) -> LookupResult:
     ptr = reverse_dns(ip)
@@ -146,7 +149,7 @@ def process_ip(
     )
 
 
-def _error_result(ip: str, message: str) -> Dict:
+def _error_result(ip: str, message: str) -> dict[str, Any]:
     return {
         "ip": ip,
         "noise": None,
